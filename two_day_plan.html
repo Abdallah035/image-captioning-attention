@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Image Captioning + Grad-CAM — 2-Day Build Plan</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a2028;
+    --accent: #4fc3f7;
+    --accent2: #ffb74d;
+    --accent3: #81c784;
+    --text: #e8eef3;
+    --muted: #9aa5b1;
+    --code-bg: #0a0e13;
+    --border: #2a3441;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    margin: 0;
+    padding: 0;
+  }
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 28px 80px;
+  }
+  h1 {
+    font-size: 2.2em;
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 12px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 30px;
+  }
+  h2 {
+    color: var(--accent);
+    margin-top: 2.4em;
+    border-left: 4px solid var(--accent);
+    padding-left: 14px;
+  }
+  h3 {
+    color: var(--accent2);
+    margin-top: 1.6em;
+  }
+  h4 { color: var(--text); margin-top: 1.4em; }
+  p { margin: 0.7em 0; }
+  code {
+    background: var(--code-bg);
+    color: #ffcc80;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "Fira Code", "Consolas", monospace;
+    font-size: 0.92em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: "Fira Code", "Consolas", monospace;
+    font-size: 0.86em;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; color: var(--text); }
+  .day {
+    background: linear-gradient(135deg, #1e2a38, #1a2028);
+    border-left: 5px solid var(--accent2);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin: 24px 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .day h2 {
+    margin-top: 0;
+    border: none;
+    padding: 0;
+    color: var(--accent2);
+    font-size: 1.8em;
+  }
+  .timeblock {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 14px 0;
+  }
+  .timeblock h4 {
+    margin-top: 0;
+    color: var(--accent);
+  }
+  .time {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 3px 12px;
+    border-radius: 14px;
+    font-weight: bold;
+    font-size: 0.85em;
+    margin-right: 10px;
+  }
+  .duration {
+    color: var(--accent3);
+    font-size: 0.85em;
+    font-weight: bold;
+  }
+  .checklist {
+    list-style: none;
+    padding-left: 0;
+  }
+  .checklist li {
+    padding: 4px 0 4px 28px;
+    position: relative;
+  }
+  .checklist li::before {
+    content: "☐";
+    position: absolute;
+    left: 4px;
+    color: var(--accent3);
+    font-size: 1.2em;
+  }
+  .note {
+    background: #1e2a1a;
+    border-left: 4px solid var(--accent3);
+    padding: 12px 18px;
+    margin: 14px 0;
+    border-radius: 6px;
+  }
+  .warn {
+    background: #2a1e1a;
+    border-left: 4px solid #ff8a65;
+    padding: 12px 18px;
+    margin: 14px 0;
+    border-radius: 6px;
+  }
+  .pro-tip {
+    background: #1a1e2e;
+    border-left: 4px solid #ba68c8;
+    padding: 12px 18px;
+    margin: 14px 0;
+    border-radius: 6px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: var(--panel);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { background: #1e2a38; color: var(--accent); }
+  tr:last-child td { border-bottom: none; }
+  .toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 24px;
+    margin: 20px 0 30px;
+  }
+  .toc h3 { margin-top: 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .file-tree {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    font-family: "Fira Code", "Consolas", monospace;
+    font-size: 0.88em;
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+  .file-tree .folder { color: var(--accent); font-weight: bold; }
+  .file-tree .file { color: var(--text); }
+  .file-tree .comment { color: var(--muted); font-style: italic; }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  @media (max-width: 720px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 36px 0;
+  }
+  .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-right: 6px;
+  }
+  .stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .stack span {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-family: "Fira Code", monospace;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Image Captioning + Grad-CAM</h1>
+<p class="subtitle">A 2-Day Professional Build Plan &mdash; Flickr8k, Bahdanau Attention, Grad-CAM, Streamlit Web App, GitHub-Ready</p>
+
+<div class="toc">
+  <h3>Plan at a glance</h3>
+  <ol>
+    <li><a href="#goal">Goal &amp; Deliverables</a></li>
+    <li><a href="#stack">Tech Stack &amp; Architecture</a></li>
+    <li><a href="#repo">Professional Repository Structure</a></li>
+    <li><a href="#day1">Day 1 &mdash; Data, Model, Training</a></li>
+    <li><a href="#day2">Day 2 &mdash; Grad-CAM, Web App, Polish</a></li>
+    <li><a href="#code">Reusable Code Snippets</a></li>
+    <li><a href="#streamlit">The Streamlit Web App</a></li>
+    <li><a href="#readme">README Template</a></li>
+    <li><a href="#deploy">Deployment Options</a></li>
+    <li><a href="#risks">Risk Plan / What If Training Fails</a></li>
+  </ol>
+</div>
+
+<hr>
+
+<h2 id="goal">1. Goal &amp; Deliverables</h2>
+
+<p><b>Goal:</b> ship a polished, end-to-end image-captioning project that demonstrates two papers (Bahdanau attention + Grad-CAM), runs as a web app, and looks professional on GitHub.</p>
+
+<h3>Deliverables (what graders/recruiters will see)</h3>
+<ul>
+  <li>A trained captioning model (Encoder ResNet-50 + Bahdanau-attention LSTM decoder) on Flickr8k.</li>
+  <li>A <b>Streamlit web app</b> where a user uploads an image and gets:
+    <ul>
+      <li>The generated caption (rendered nicely word-by-word).</li>
+      <li>An <b>attention heatmap</b> per word (from Bahdanau attention).</li>
+      <li>A <b>Grad-CAM heatmap</b> for the whole prediction.</li>
+    </ul>
+  </li>
+  <li>A clean GitHub repository with README, demo GIF, code structure, requirements, instructions to reproduce.</li>
+  <li>A short evaluation report (BLEU-1/2/3/4, sample outputs).</li>
+</ul>
+
+<hr>
+
+<h2 id="stack">2. Tech Stack &amp; Architecture</h2>
+
+<div class="stack">
+  <span>Python 3.10+</span>
+  <span>PyTorch 2.x</span>
+  <span>torchvision</span>
+  <span>NLTK</span>
+  <span>tqdm</span>
+  <span>Pillow</span>
+  <span>matplotlib</span>
+  <span>Streamlit</span>
+  <span>numpy / pandas</span>
+</div>
+
+<h4>Architecture</h4>
+<pre><code>┌─────────────┐    ┌──────────────┐    ┌──────────────────────┐
+│   Image     │───▶│  ResNet-50   │───▶│  7×7×2048 features    │
+│  (224×224)  │    │  (frozen)    │    │  → 49 region vectors  │
+└─────────────┘    └──────────────┘    └──────────┬───────────┘
+                                                  │
+                                                  ▼
+                                  ┌─────────────────────────────┐
+                                  │  Bahdanau Attention + LSTM   │
+                                  │  (decoder_dim=512)           │
+                                  └──────────┬──────────────────┘
+                                             │
+                                             ▼
+                                  ┌─────────────────────────────┐
+                                  │  Caption: "a dog runs..."    │
+                                  │  + per-word α heatmaps       │
+                                  └─────────────────────────────┘
+
+For visualization at inference time:
+  Grad-CAM(target=caption logit, layer=ResNet last conv) → coarse heatmap</code></pre>
+
+<hr>
+
+<h2 id="repo">3. Professional Repository Structure</h2>
+
+<div class="file-tree">
+<span class="folder">image-captioning-attention/</span>
+├── <span class="folder">app/</span>
+│   ├── <span class="file">streamlit_app.py</span>          <span class="comment"># the web UI</span>
+│   └── <span class="file">utils_viz.py</span>              <span class="comment"># overlay heatmap helpers</span>
+├── <span class="folder">src/</span>
+│   ├── <span class="file">__init__.py</span>
+│   ├── <span class="file">dataset.py</span>                <span class="comment"># Flickr8kDataset</span>
+│   ├── <span class="file">vocab.py</span>                  <span class="comment"># Vocabulary class</span>
+│   ├── <span class="file">model.py</span>                  <span class="comment"># Encoder + Decoder + Attention</span>
+│   ├── <span class="file">train.py</span>                  <span class="comment"># training loop</span>
+│   ├── <span class="file">evaluate.py</span>               <span class="comment"># BLEU + sample captions</span>
+│   ├── <span class="file">inference.py</span>              <span class="comment"># beam search caption generator</span>
+│   └── <span class="file">gradcam.py</span>                <span class="comment"># Grad-CAM module</span>
+├── <span class="folder">notebooks/</span>
+│   ├── <span class="file">01_explore_data.ipynb</span>
+│   ├── <span class="file">02_train_demo.ipynb</span>
+│   └── <span class="file">03_visualization_demo.ipynb</span>
+├── <span class="folder">checkpoints/</span>                <span class="comment"># .pth files (gitignored)</span>
+├── <span class="folder">data/</span>                       <span class="comment"># Flickr8k (gitignored)</span>
+├── <span class="folder">assets/</span>
+│   ├── <span class="file">demo.gif</span>                  <span class="comment"># 5-sec demo for README</span>
+│   ├── <span class="file">architecture.png</span>
+│   └── <span class="file">sample_outputs/</span>
+├── <span class="file">requirements.txt</span>
+├── <span class="file">.gitignore</span>
+├── <span class="file">LICENSE</span>                       <span class="comment"># MIT</span>
+├── <span class="file">README.md</span>                     <span class="comment"># the centerpiece — recruiters read this</span>
+└── <span class="file">Dockerfile</span>                    <span class="comment"># optional but impressive</span>
+</div>
+
+<div class="pro-tip">
+  <b>Pro tip:</b> Use a <code>src/</code> layout (not flat scripts in root). Recruiters and senior engineers
+  recognize this immediately as "this person knows how to structure a Python project."
+</div>
+
+<hr>
+
+<h2 id="day1">4. Day 1 — Data, Model, Training</h2>
+
+<div class="day">
+<h2>📅 DAY 1 — Build the model and start training</h2>
+
+<div class="timeblock">
+  <h4><span class="time">9:00 – 10:00</span><span class="duration">1 hour</span> Project setup &amp; environment</h4>
+  <ul class="checklist">
+    <li>Create GitHub repo <code>image-captioning-attention</code> (public, MIT license, README seed).</li>
+    <li>Clone, create folder structure above, init <code>requirements.txt</code>, <code>.gitignore</code>.</li>
+    <li>Create venv: <code>python -m venv venv &amp;&amp; venv\Scripts\activate</code>.</li>
+    <li>Install: <code>torch torchvision streamlit nltk tqdm pillow matplotlib pandas</code>.</li>
+    <li>Verify GPU: <code>python -c "import torch; print(torch.cuda.is_available())"</code>.</li>
+    <li>First commit: <i>"chore: initial project scaffold"</i>.</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">10:00 – 12:00</span><span class="duration">2 hours</span> Data pipeline (Flickr8k)</h4>
+  <ul class="checklist">
+    <li>Download Flickr8k from Kaggle (search "Flickr 8k dataset").</li>
+    <li>Place images under <code>data/Images/</code>, captions under <code>data/captions.txt</code>.</li>
+    <li>Implement <code>src/vocab.py</code>: <code>Vocabulary</code> class with build/save/load, special tokens (<code>&lt;pad&gt;, &lt;start&gt;, &lt;end&gt;, &lt;unk&gt;</code>), min freq = 5.</li>
+    <li>Implement <code>src/dataset.py</code>: <code>Flickr8kDataset(image_dir, captions_csv, vocab, transform)</code>.</li>
+    <li>Apply ImageNet normalization in transforms.</li>
+    <li>Custom <code>collate_fn</code> that pads captions to batch max length.</li>
+    <li>Quick sanity check: load a batch, print shapes, decode a caption.</li>
+    <li>Commit: <i>"feat: data loading + vocabulary"</i>.</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">12:00 – 13:00</span><span class="duration">1 hour</span> Lunch + read Show, Attend &amp; Tell</h4>
+  <p>Skim Xu et al. 2015 — section 3 (model) and 4 (training). It's the bridge from Bahdanau to your project. 30 min reading + 30 min eat.</p>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">13:00 – 16:00</span><span class="duration">3 hours</span> Model code (Encoder + Attention + Decoder)</h4>
+  <ul class="checklist">
+    <li>Implement <code>EncoderCNN</code> in <code>src/model.py</code> — ResNet-50 with last 2 layers stripped, returns <code>(B, 49, 2048)</code>.</li>
+    <li>Implement <code>BahdanauAttention</code> with <code>W_a, U_a, v_a</code> as <code>nn.Linear</code> layers.</li>
+    <li>Implement <code>DecoderWithAttention</code> — <code>nn.LSTMCell</code>, init hidden via mean feature, embedding, fc to vocab.</li>
+    <li>Forward pass returns logits <code>(B, T, vocab)</code> AND alphas <code>(B, T, 49)</code>.</li>
+    <li>Quick sanity test: feed dummy image, check shapes flow through.</li>
+    <li>Commit: <i>"feat: encoder, attention, decoder modules"</i>.</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">16:00 – 18:00</span><span class="duration">2 hours</span> Training loop</h4>
+  <ul class="checklist">
+    <li>Write <code>src/train.py</code>: Adam (lr=4e-4 decoder, encoder frozen), CrossEntropyLoss with <code>ignore_index=&lt;pad&gt;</code>.</li>
+    <li>Add doubly-stochastic regularization: <code>+ lambda * ((1 - alphas.sum(1))**2).mean()</code>.</li>
+    <li>Use <code>torch.nn.utils.clip_grad_norm_</code> at 5.0 to avoid exploding gradients.</li>
+    <li>Save checkpoint every epoch to <code>checkpoints/best.pth</code>.</li>
+    <li>Log loss with tqdm; optionally Weights &amp; Biases for a slick screenshot.</li>
+    <li>Run training for 1 epoch first to confirm everything works, then commit.</li>
+    <li>Commit: <i>"feat: training loop with attention regularization"</i>.</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">18:00 – 22:00</span><span class="duration">4 hours</span> Train for ~10 epochs</h4>
+  <p>Start full training (~25 min/epoch on a single mid-range GPU; 4 hours = ~10 epochs). Meanwhile:</p>
+  <ul class="checklist">
+    <li>Start drafting the README in parallel (put architecture diagram, project pitch).</li>
+    <li>Save 3–5 sample images from your test set; you'll need them tomorrow for the demo GIF.</li>
+    <li>Periodically eyeball generated captions on a held-out image to confirm convergence.</li>
+  </ul>
+  <div class="warn">
+    <b>If you don't have a GPU:</b> use <b>Google Colab</b> with T4 (free) or Kaggle Notebooks. Mount Drive,
+    keep checkpoints there. Don't waste your laptop trying to train CPU-only.
+  </div>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">22:00 – 23:00</span><span class="duration">1 hour</span> End-of-Day-1 review</h4>
+  <ul class="checklist">
+    <li>Verify a checkpoint loads cleanly and generates a caption (greedy decode is fine for now).</li>
+    <li>Commit current weights metadata, push everything to GitHub.</li>
+    <li>Sleep — Day 2 is integration day, you'll need a fresh head.</li>
+  </ul>
+</div>
+</div>
+
+<hr>
+
+<h2 id="day2">5. Day 2 — Grad-CAM, Web App, Polish</h2>
+
+<div class="day">
+<h2>📅 DAY 2 — Visualizations, web app, GitHub-ready polish</h2>
+
+<div class="timeblock">
+  <h4><span class="time">9:00 – 10:30</span><span class="duration">1.5 hours</span> Beam search inference + evaluation</h4>
+  <ul class="checklist">
+    <li>Implement beam search (beam=5) in <code>src/inference.py</code>; return both caption tokens and per-step alphas.</li>
+    <li>Implement <code>src/evaluate.py</code>: BLEU-1/2/3/4 with <code>nltk.translate.bleu_score.corpus_bleu</code> on test split.</li>
+    <li>Save numbers to a small JSON; you'll paste them in the README.</li>
+    <li>Save a notebook <code>03_visualization_demo.ipynb</code> with 6–8 sample images + captions + attention overlays.</li>
+    <li>Commit: <i>"feat: beam search + BLEU evaluation"</i>.</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">10:30 – 12:00</span><span class="duration">1.5 hours</span> Grad-CAM module</h4>
+  <ul class="checklist">
+    <li>Implement <code>src/gradcam.py</code> with a class that registers forward + backward hooks on the encoder's last conv layer.</li>
+    <li>API: <code>cam = grad_cam(image, target_logit)</code> &rarr; numpy heatmap normalized to [0,1].</li>
+    <li>Decide: per-word Grad-CAM (target = each word logit) <b>and</b> sentence-level Grad-CAM (target = mean caption logits). Provide both.</li>
+    <li>Add a notebook cell that generates a 4-row figure: image, attention map for "dog", attention for "running", Grad-CAM for "dog".</li>
+    <li>Commit: <i>"feat: Grad-CAM visualization"</i>.</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">12:00 – 13:00</span><span class="duration">1 hour</span> Lunch + repo polish</h4>
+  <ul class="checklist">
+    <li>Write proper docstrings on public classes/functions (Google style).</li>
+    <li>Add type hints to <code>model.py</code> and <code>inference.py</code>.</li>
+    <li>Create <code>requirements.txt</code> with <code>pip freeze | grep -E "torch|streamlit|..."</code> (pin major versions only).</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">13:00 – 16:00</span><span class="duration">3 hours</span> Streamlit web app</h4>
+  <p>This is your <b>showpiece</b>. See section 7 for the full code template.</p>
+  <ul class="checklist">
+    <li><code>app/streamlit_app.py</code>: file uploader, "Generate Caption" button.</li>
+    <li>Display: the uploaded image, the caption nicely typed word by word.</li>
+    <li>For each word, a clickable thumbnail showing its attention heatmap overlay (use <code>st.tabs</code> or <code>st.expander</code>).</li>
+    <li>Bottom panel: Grad-CAM heatmap.</li>
+    <li>Add a sidebar with model info, sample images to try, beam-size slider.</li>
+    <li>Cache model loading with <code>@st.cache_resource</code> so reruns are instant.</li>
+    <li>Test locally: <code>streamlit run app/streamlit_app.py</code>.</li>
+    <li>Record a 10-second screen capture &rarr; convert to <code>assets/demo.gif</code> (use <a href="https://www.screentogif.com/" target="_blank" rel="noopener">ScreenToGif</a> on Windows).</li>
+    <li>Commit: <i>"feat: Streamlit web app with attention &amp; Grad-CAM"</i>.</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">16:00 – 18:00</span><span class="duration">2 hours</span> README + GitHub polish</h4>
+  <ul class="checklist">
+    <li>Write the README following the template in section 8.</li>
+    <li>Include: project pitch, demo GIF, results table, architecture image, install instructions, how to run, papers referenced, license.</li>
+    <li>Add badges: Python version, PyTorch version, License, Streamlit "Open in Streamlit Cloud" (after deploy).</li>
+    <li>Add a short <code>CONTRIBUTING.md</code> stub (signals professionalism).</li>
+    <li>Create a clean release on GitHub: tag <code>v1.0.0</code>, attach the trained <code>.pth</code> as a release asset (avoid committing big files).</li>
+    <li>Commit + push.</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">18:00 – 20:00</span><span class="duration">2 hours</span> Deployment (optional but high impact)</h4>
+  <ul class="checklist">
+    <li><b>Streamlit Community Cloud</b> — free, just connect GitHub, point at <code>app/streamlit_app.py</code>. ~10 min to deploy.</li>
+    <li>Or <b>Hugging Face Spaces</b> (Streamlit SDK) — equally free, gives you huggingface.co/spaces/your-name URL.</li>
+    <li>Add the live demo URL to the README right under the title.</li>
+    <li>Tweet/LinkedIn-post the demo URL with a 30-second video — recruiter visibility.</li>
+  </ul>
+</div>
+
+<div class="timeblock">
+  <h4><span class="time">20:00 – 22:00</span><span class="duration">2 hours</span> Final pass &amp; presentation prep</h4>
+  <ul class="checklist">
+    <li>Re-run the entire app from scratch on a clean clone to verify reproducibility.</li>
+    <li>Prepare 5-slide presentation deck: problem, two papers, architecture, results, demo.</li>
+    <li>Test on 3 unusual images (very dark, very bright, abstract) and document failure cases honestly in the README — recruiters love honesty.</li>
+    <li>Last commit + tag <code>v1.0.0</code>.</li>
+  </ul>
+</div>
+</div>
+
+<hr>
+
+<h2 id="code">6. Reusable Code Snippets</h2>
+
+<h3>6.1 Vocabulary class</h3>
+<pre><code>import re
+from collections import Counter
+
+class Vocabulary:
+    PAD, START, END, UNK = "&lt;pad&gt;", "&lt;start&gt;", "&lt;end&gt;", "&lt;unk&gt;"
+
+    def __init__(self):
+        self.itos, self.stoi = {}, {}
+        for tok in [self.PAD, self.START, self.END, self.UNK]:
+            self._add(tok)
+
+    def _add(self, tok):
+        idx = len(self.itos)
+        self.itos[idx] = tok
+        self.stoi[tok] = idx
+
+    @staticmethod
+    def tokenize(text):
+        return re.findall(r"[a-z']+", text.lower())
+
+    def build(self, captions, min_freq=5):
+        counter = Counter()
+        for c in captions:
+            counter.update(self.tokenize(c))
+        for word, freq in counter.items():
+            if freq &gt;= min_freq:
+                self._add(word)
+
+    def encode(self, text):
+        return [self.stoi.get(t, self.stoi[self.UNK]) for t in self.tokenize(text)]
+
+    def __len__(self):
+        return len(self.itos)</code></pre>
+
+<h3>6.2 Model (full)</h3>
+<pre><code>import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision.models as models
+
+class EncoderCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+        modules = list(resnet.children())[:-2]
+        self.cnn = nn.Sequential(*modules)
+        for p in self.cnn.parameters():
+            p.requires_grad = False
+
+    def forward(self, images):
+        f = self.cnn(images)                          # (B, 2048, 7, 7)
+        f = f.permute(0, 2, 3, 1).flatten(1, 2)       # (B, 49, 2048)
+        return f
+
+class BahdanauAttention(nn.Module):
+    def __init__(self, enc_dim=2048, dec_dim=512, attn_dim=512):
+        super().__init__()
+        self.W_a = nn.Linear(dec_dim, attn_dim, bias=False)
+        self.U_a = nn.Linear(enc_dim, attn_dim, bias=False)
+        self.v_a = nn.Linear(attn_dim, 1, bias=False)
+
+    def forward(self, features, hidden):
+        scores = self.v_a(torch.tanh(
+            self.U_a(features) + self.W_a(hidden).unsqueeze(1)
+        )).squeeze(-1)                                # (B, 49)
+        alpha = F.softmax(scores, dim=1)
+        context = (alpha.unsqueeze(-1) * features).sum(dim=1)
+        return context, alpha
+
+class DecoderWithAttention(nn.Module):
+    def __init__(self, vocab_size, emb_dim=256, dec_dim=512, enc_dim=2048):
+        super().__init__()
+        self.attention = BahdanauAttention(enc_dim, dec_dim)
+        self.embedding = nn.Embedding(vocab_size, emb_dim)
+        self.lstm = nn.LSTMCell(emb_dim + enc_dim, dec_dim)
+        self.init_h = nn.Linear(enc_dim, dec_dim)
+        self.init_c = nn.Linear(enc_dim, dec_dim)
+        self.fc = nn.Linear(dec_dim, vocab_size)
+        self.dropout = nn.Dropout(0.5)
+
+    def init_hidden(self, features):
+        m = features.mean(dim=1)
+        return torch.tanh(self.init_h(m)), torch.tanh(self.init_c(m))
+
+    def forward(self, features, captions):
+        B, T = captions.shape
+        h, c = self.init_hidden(features)
+        embeds = self.embedding(captions)
+        logits, alphas = [], []
+        for t in range(T):
+            ctx, alpha = self.attention(features, h)
+            inp = torch.cat([embeds[:, t], ctx], dim=1)
+            h, c = self.lstm(inp, (h, c))
+            logits.append(self.fc(self.dropout(h)))
+            alphas.append(alpha)
+        return torch.stack(logits, 1), torch.stack(alphas, 1)</code></pre>
+
+<h3>6.3 Training step (the loss)</h3>
+<pre><code>criterion = nn.CrossEntropyLoss(ignore_index=vocab.stoi[Vocabulary.PAD])
+LAMBDA_DS = 1.0   # doubly-stochastic weight
+
+for images, caps in loader:
+    feats = encoder(images.to(device))
+    logits, alphas = decoder(feats, caps[:, :-1].to(device))   # input: [start, w1, ..., wT-1]
+    targets = caps[:, 1:].to(device)                           # target: [w1, ..., wT-1, end]
+    loss_xe = criterion(logits.reshape(-1, logits.size(-1)), targets.reshape(-1))
+    loss_ds = ((1.0 - alphas.sum(dim=1)) ** 2).mean()
+    loss = loss_xe + LAMBDA_DS * loss_ds
+
+    optimizer.zero_grad()
+    loss.backward()
+    nn.utils.clip_grad_norm_(decoder.parameters(), 5.0)
+    optimizer.step()</code></pre>
+
+<h3>6.4 Beam search (compact version)</h3>
+<pre><code>@torch.no_grad()
+def beam_search(encoder, decoder, image, vocab, beam=5, max_len=20):
+    feats = encoder(image)                       # (1, 49, 2048)
+    h, c = decoder.init_hidden(feats)
+    start = vocab.stoi[Vocabulary.START]
+    end = vocab.stoi[Vocabulary.END]
+
+    beams = [(0.0, [start], h, c, [])]           # (logprob, tokens, h, c, alphas)
+    finished = []
+
+    for _ in range(max_len):
+        new_beams = []
+        for lp, toks, h, c, alphas in beams:
+            if toks[-1] == end:
+                finished.append((lp, toks, alphas))
+                continue
+            emb = decoder.embedding(torch.tensor([[toks[-1]]], device=image.device)).squeeze(1)
+            ctx, alpha = decoder.attention(feats, h)
+            h2, c2 = decoder.lstm(torch.cat([emb, ctx], dim=1), (h, c))
+            log_probs = F.log_softmax(decoder.fc(h2), dim=-1).squeeze(0)
+            top_lp, top_idx = log_probs.topk(beam)
+            for k in range(beam):
+                new_beams.append((
+                    lp + top_lp[k].item(),
+                    toks + [top_idx[k].item()],
+                    h2, c2,
+                    alphas + [alpha.squeeze(0).cpu().numpy()],
+                ))
+        beams = sorted(new_beams, key=lambda x: x[0], reverse=True)[:beam]
+        if not beams:
+            break
+
+    finished += [(lp, t, a) for lp, t, _, _, a in beams]
+    finished.sort(key=lambda x: x[0] / max(len(x[1]), 1), reverse=True)
+    return finished[0]   # (logprob, token_ids, list of alpha arrays)</code></pre>
+
+<h3>6.5 Grad-CAM</h3>
+<pre><code>class GradCAM:
+    def __init__(self, model, target_layer):
+        self.model = model
+        self.activations, self.gradients = None, None
+        target_layer.register_forward_hook(
+            lambda m, i, o: setattr(self, "activations", o.detach()))
+        target_layer.register_full_backward_hook(
+            lambda m, gi, go: setattr(self, "gradients", go[0].detach()))
+
+    def __call__(self, image, target_logit):
+        self.model.zero_grad()
+        target_logit.backward(retain_graph=True)
+        alpha = self.gradients.mean(dim=(2, 3), keepdim=True)
+        cam = F.relu((alpha * self.activations).sum(dim=1, keepdim=True))
+        cam = F.interpolate(cam, size=image.shape[-2:], mode="bilinear", align_corners=False)
+        cam = cam - cam.min()
+        cam = cam / (cam.max() + 1e-8)
+        return cam.squeeze().cpu().numpy()</code></pre>
+
+<hr>
+
+<h2 id="streamlit">7. The Streamlit Web App</h2>
+
+<p>Save as <code>app/streamlit_app.py</code>. Run with <code>streamlit run app/streamlit_app.py</code>.</p>
+
+<pre><code>import streamlit as st
+import torch
+import numpy as np
+from PIL import Image
+import matplotlib.pyplot as plt
+from torchvision import transforms
+
+from src.model import EncoderCNN, DecoderWithAttention
+from src.vocab import Vocabulary
+from src.inference import beam_search
+from src.gradcam import GradCAM
+
+st.set_page_config(page_title="Image Captioning + Grad-CAM",
+                   page_icon="🖼️", layout="wide")
+
+@st.cache_resource
+def load_model():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    vocab = torch.load("checkpoints/vocab.pth")
+    encoder = EncoderCNN().to(device).eval()
+    decoder = DecoderWithAttention(len(vocab)).to(device).eval()
+    decoder.load_state_dict(torch.load("checkpoints/best.pth", map_location=device))
+    return encoder, decoder, vocab, device
+
+encoder, decoder, vocab, device = load_model()
+tfm = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+])
+
+st.title("🖼️ Image Captioning with Attention + Grad-CAM")
+st.caption("Bahdanau (2015) + Selvaraju et al. Grad-CAM (2017) on Flickr8k")
+
+with st.sidebar:
+    st.header("Settings")
+    beam = st.slider("Beam size", 1, 10, 5)
+    st.markdown("---")
+    st.markdown("**Papers**")
+    st.markdown("- [Bahdanau et al. 2015](https://arxiv.org/abs/1409.0473)")
+    st.markdown("- [Selvaraju et al. 2017](https://arxiv.org/abs/1610.02391)")
+
+uploaded = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+if uploaded is None:
+    st.info("👆 Upload a photo to get a generated caption with attention + Grad-CAM heatmaps.")
+    st.stop()
+
+img = Image.open(uploaded).convert("RGB")
+img_t = tfm(img).unsqueeze(0).to(device)
+
+col1, col2 = st.columns([1, 1])
+with col1:
+    st.image(img, caption="Input image", use_column_width=True)
+
+with st.spinner("Generating caption..."):
+    logp, tokens, alphas = beam_search(encoder, decoder, img_t, vocab, beam=beam)
+    words = [vocab.itos[t] for t in tokens
+             if vocab.itos[t] not in (Vocabulary.START, Vocabulary.END, Vocabulary.PAD)]
+
+with col2:
+    st.subheader("Generated caption")
+    st.markdown(f"### *{' '.join(words)}*")
+    st.caption(f"log-prob: {logp:.3f}  •  beam: {beam}")
+
+st.divider()
+st.subheader("Per-word attention heatmaps")
+img_np = np.array(img.resize((224, 224))) / 255.0
+cols = st.columns(min(len(words), 6))
+for i, (w, alpha) in enumerate(zip(words, alphas)):
+    with cols[i % len(cols)]:
+        a = alpha.reshape(7, 7)
+        a = np.kron(a, np.ones((32, 32)))   # upsample to 224×224
+        a = (a - a.min()) / (a.max() - a.min() + 1e-8)
+        fig, ax = plt.subplots(figsize=(2.5, 2.5))
+        ax.imshow(img_np)
+        ax.imshow(a, cmap="jet", alpha=0.45)
+        ax.set_title(w, fontsize=10)
+        ax.axis("off")
+        st.pyplot(fig, clear_figure=True)
+
+st.divider()
+st.subheader("Grad-CAM (sentence-level)")
+target_layer = encoder.cnn[-1]
+grad_cam = GradCAM(decoder, target_layer)
+# pick the highest-prob word logit as target — or sum over caption logits
+# (skipping the full implementation here for brevity; see src/gradcam.py)
+st.write("📌 Heatmap shows which image regions most influenced the prediction.")
+</code></pre>
+
+<div class="pro-tip">
+  <b>UI polish ideas (5 minutes each):</b>
+  <ul>
+    <li>Add a "Try a sample image" gallery in the sidebar.</li>
+    <li>Display attention &amp; Grad-CAM side by side with <code>st.tabs(["Attention", "Grad-CAM"])</code>.</li>
+    <li>Add a slider to overlay opacity.</li>
+    <li>Show the BLEU score on the test set in the sidebar.</li>
+  </ul>
+</div>
+
+<hr>
+
+<h2 id="readme">8. README Template (the recruiter magnet)</h2>
+
+<pre><code># 🖼️ Image Captioning with Attention + Grad-CAM
+
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.x-red.svg)](https://pytorch.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Live-FF4B4B.svg)](https://your-app.streamlit.app)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+End-to-end implementation of an attention-based image-captioning model on Flickr8k,
+with Grad-CAM visual explanations and a Streamlit web demo.
+
+🚀 **Live demo:** https://your-app.streamlit.app
+📄 **Papers:** [Bahdanau 2015](https://arxiv.org/abs/1409.0473), [Selvaraju 2017](https://arxiv.org/abs/1610.02391)
+
+![Demo](assets/demo.gif)
+
+## Highlights
+- 🧠 ResNet-50 encoder + LSTM decoder with **Bahdanau attention**
+- 🔍 **Grad-CAM** heatmaps for visual explanation of every prediction
+- 🌐 Streamlit web app: upload image → caption + attention + Grad-CAM
+- 📊 BLEU-4 of **0.21** on Flickr8k test split
+
+## Architecture
+![Architecture](assets/architecture.png)
+
+## Results
+| Metric | Score |
+|---|---|
+| BLEU-1 | 0.62 |
+| BLEU-2 | 0.41 |
+| BLEU-3 | 0.27 |
+| BLEU-4 | 0.21 |
+
+## Quick start
+```bash
+git clone https://github.com/&lt;you&gt;/image-captioning-attention
+cd image-captioning-attention
+pip install -r requirements.txt
+streamlit run app/streamlit_app.py
+```
+
+## Train from scratch
+```bash
+python -m src.train --epochs 20 --batch-size 32
+```
+
+## Project structure
+```
+src/        # model, dataset, training, inference, Grad-CAM
+app/        # Streamlit web app
+notebooks/  # exploration + visualization
+```
+
+## References
+1. Bahdanau, Cho, Bengio. *Neural Machine Translation by Jointly Learning to Align and Translate.* ICLR 2015.
+2. Xu et al. *Show, Attend and Tell.* ICML 2015.
+3. Selvaraju et al. *Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization.* ICCV 2017.
+
+## License
+MIT
+</code></pre>
+
+<hr>
+
+<h2 id="deploy">9. Deployment Options</h2>
+
+<table>
+  <tr><th>Option</th><th>Cost</th><th>Setup time</th><th>Notes</th></tr>
+  <tr><td><b>Streamlit Cloud</b></td><td>Free</td><td>10 min</td><td>Connect GitHub, point at <code>app/streamlit_app.py</code>. Easiest.</td></tr>
+  <tr><td><b>Hugging Face Spaces</b></td><td>Free</td><td>15 min</td><td>Choose Streamlit SDK; nice ML-community URL.</td></tr>
+  <tr><td>Render / Railway</td><td>Free tier</td><td>30 min</td><td>Need a Procfile / Dockerfile.</td></tr>
+  <tr><td>AWS / GCP</td><td>$$</td><td>2–4 hours</td><td>Skip for a 2-day project.</td></tr>
+</table>
+
+<div class="note">
+  <b>Recommendation:</b> Streamlit Cloud for fastest deploy + Hugging Face Spaces as a mirror.
+  Both URLs in the README looks great.
+</div>
+
+<hr>
+
+<h2 id="risks">10. Risk Plan — What If Things Go Wrong?</h2>
+
+<table>
+  <tr><th>Risk</th><th>Mitigation</th></tr>
+  <tr>
+    <td>Training takes too long, no GPU available</td>
+    <td>Use Google Colab (T4) or Kaggle (P100) free tier; both have 12-hour sessions.</td>
+  </tr>
+  <tr>
+    <td>Loss diverges / captions are gibberish</td>
+    <td>Reduce LR to 1e-4, lower &lambda; on doubly-stochastic, verify <code>&lt;pad&gt;</code> masking is correct.</td>
+  </tr>
+  <tr>
+    <td>Trained model is too heavy for Streamlit Cloud (free tier ~1 GB RAM)</td>
+    <td>Use ResNet-34 instead of ResNet-50, or quantize to <code>fp16</code>; or host on HF Spaces (more memory).</td>
+  </tr>
+  <tr>
+    <td>BLEU low (&lt;0.10)</td>
+    <td>Train longer, try teacher-forcing ratio scheduling, double-check vocabulary build is on TRAIN split only.</td>
+  </tr>
+  <tr>
+    <td>Grad-CAM heatmap is all-zero</td>
+    <td>Make sure target_logit was computed with <code>requires_grad=True</code> in the path; never wrap inference in <code>torch.no_grad</code> for Grad-CAM.</td>
+  </tr>
+  <tr>
+    <td>No time for deployment</td>
+    <td>Local-only demo is acceptable if you record a clean GIF; deployment can come post-deadline.</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>Closing notes</h2>
+<div class="note">
+  <b>What recruiters / instructors will notice:</b>
+  <ul>
+    <li>Project structure (<code>src/</code> layout).</li>
+    <li>Working web demo URL.</li>
+    <li>README with badges, GIF, results table.</li>
+    <li>Clean commit history (small commits with meaningful messages).</li>
+    <li>The ability to clone &amp; run with a single command.</li>
+  </ul>
+  <b>What is bonus but not required:</b> Dockerfile, unit tests, GitHub Actions CI badge, paper PDF in repo.
+</div>
+
+<p style="color: var(--muted); margin-top: 40px; text-align: center; font-size: 0.9em;">
+  Two days is enough — provided you stay disciplined, don't over-engineer, and start training early on Day 1.
+</p>
+
+</div>
+</body>
+</html>

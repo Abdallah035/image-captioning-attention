@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/Scripts/python.exe -m pip list)",
+      "Bash(TMPDIR=/f/pip_tmp TMP=/f/pip_tmp TEMP=/f/pip_tmp venv/Scripts/python.exe -m pip install --cache-dir /f/pip_cache --force-reinstall torch torchvision --index-url https://download.pytorch.org/whl/cu121)",
+      "Bash(tasklist)"
+    ]
+  }
+}

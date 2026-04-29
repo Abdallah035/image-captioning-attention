@@ -1,0 +1,9 @@
+torch>=2.0
+torchvision>=0.15
+streamlit>=1.30
+nltk>=3.8
+tqdm>=4.65
+pillow>=10.0
+matplotlib>=3.7
+pandas>=2.0
+numpy>=1.24
