@@ -11,7 +11,7 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# Data + checkpoints (too big for git)
+# Data + checkpoints (downloaded / regenerated, not committed)
 data/
 checkpoints/
 *.pth
@@ -25,5 +25,12 @@ checkpoints/
 Thumbs.db
 .DS_Store
 
-# Misc
+# Logs
 *.log
+
+# Local pip workarounds (we redirect pip to F: when C: is full)
+pip_cache/
+pip_tmp/
+
+# Local agent / scratch
+.claude/
